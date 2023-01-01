@@ -1,5 +1,6 @@
-import warnings
+from __future__ import annotations
 
+import warnings
 
 LEGACY_CONFIG_OPTIONS = {
     "REDIS_URL": "RQ_DASHBOARD_REDIS_URL",

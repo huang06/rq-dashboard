@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 
 from setuptools import find_packages, setup
@@ -12,7 +14,7 @@ def get_version():
     raise RuntimeError('No version info found.')
 
 
-with open("README.md", "r") as fh:
+with open("README.md") as fh:
     long_description = fh.read()
 
 
@@ -24,7 +26,7 @@ setup(
     author='Vincent Driessen',
     author_email='vincent@3rdcloud.com',
     description='rq-dashboard is a general purpose, lightweight, web interface'
-                ' to monitor your RQ queues, jobs, and workers in realtime.',
+    ' to monitor your RQ queues, jobs, and workers in realtime.',
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=find_packages(exclude=('tests',)),
@@ -32,11 +34,7 @@ setup(
     zip_safe=False,
     platforms='any',
     install_requires=['rq>=1.0', 'Flask', 'redis', 'arrow', 'redis-sentinel-url'],
-    entry_points={
-        'console_scripts': [
-            'rq-dashboard = rq_dashboard.cli:main'
-        ]
-    },
+    entry_points={'console_scripts': ['rq-dashboard = rq_dashboard.cli:main']},
     classifiers=[
         # As from http://pypi.python.org/pypi?%3Aaction=list_classifiers
         # 'Development Status :: 1 - Planning',
@@ -66,5 +64,5 @@ setup(
         'Topic :: System :: Distributed Computing',
         'Topic :: System :: Systems Administration',
         'Topic :: System :: Monitoring',
-    ]
+    ],
 )

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import unittest
 
@@ -6,8 +8,8 @@ from rq import Queue, Worker, pop_connection, push_connection
 
 from rq_dashboard.cli import make_flask_app
 
-
 HTTP_OK = 200
+
 
 class BasicTestCase(unittest.TestCase):
     redis_client = None
@@ -61,6 +63,7 @@ class BasicTestCase(unittest.TestCase):
     def test_single_job_view(self):
         def some_work():
             return
+
         q = Queue(connection=self.app.redis_conn)
         job = q.enqueue(some_work)
         job_url = '/0/view/job/' + job.id
@@ -71,6 +74,7 @@ class BasicTestCase(unittest.TestCase):
     def test_del_job_mechanism(self):
         def some_work():
             return
+
         q = Queue(connection=self.app.redis_conn)
         job = q.enqueue(some_work)
         job_del_url = '/job/' + job.id + '/delete'

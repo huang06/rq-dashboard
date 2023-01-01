@@ -16,6 +16,8 @@ As a quick-and-dirty convenience, the command line invocation in ``cli.py``
 provides the option to require HTTP Basic Auth in a few lines of code.
 
 """
+from __future__ import annotations
+
 import os
 import re
 from functools import wraps
@@ -32,14 +34,8 @@ from flask import (
     url_for,
 )
 from redis_sentinel_url import connect as from_url
-from rq import (
-    VERSION as rq_version,
-    Queue,
-    Worker,
-    pop_connection,
-    push_connection,
-    requeue_job,
-)
+from rq import VERSION as rq_version
+from rq import Queue, Worker, pop_connection, push_connection, requeue_job
 from rq.job import Job
 from rq.registry import (
     DeferredJobRegistry,
@@ -47,14 +43,15 @@ from rq.registry import (
     FinishedJobRegistry,
     StartedJobRegistry,
 )
-from six import string_types
 
 from .legacy_config import upgrade_config
 from .version import VERSION as rq_dashboard_version
 
-
 blueprint = Blueprint(
-    "rq_dashboard", __name__, template_folder="templates", static_folder="static",
+    "rq_dashboard",
+    __name__,
+    template_folder="templates",
+    static_folder="static",
 )
 
 
@@ -64,7 +61,7 @@ def setup_rq_connection():
     upgrade_config(current_app)
     # Getting Redis connection parameters for RQ
     redis_url = current_app.config.get("RQ_DASHBOARD_REDIS_URL")
-    if isinstance(redis_url, string_types):
+    if isinstance(redis_url, str):
         current_app.config["RQ_DASHBOARD_REDIS_URL"] = (redis_url,)
         _, current_app.redis_conn = from_url((redis_url,)[0])
     elif isinstance(redis_url, (tuple, list)):
@@ -186,16 +183,14 @@ def serialize_current_job(job):
 
 
 def remove_none_values(input_dict):
-    return dict(((k, v) for k, v in input_dict.items() if v is not None))
+    return {k: v for k, v in input_dict.items() if v is not None}
 
 
 def pagination_window(total_items, cur_page, per_page, window_size=10):
     all_pages = range(1, int(ceil(total_items / float(per_page))) + 1)
     result = all_pages
     if window_size >= 1:
-        temp = min(
-            len(all_pages) - window_size, (cur_page - 1) - int(ceil(window_size / 2.0))
-        )
+        temp = min(len(all_pages) - window_size, (cur_page - 1) - int(ceil(window_size / 2.0)))
         pages_window_start = max(0, temp)
         pages_window_end = pages_window_start + window_size
         result = all_pages[pages_window_start:pages_window_end]
@@ -239,7 +234,7 @@ def get_queue_registry_jobs_count(queue_name, registry_name, offset, per_page):
 def escape_format_instance_list(url_list):
     if isinstance(url_list, (list, tuple)):
         url_list = [re.sub(r"://:[^@]*@", "://:***@", x) for x in url_list]
-    elif isinstance(url_list, string_types):
+    elif isinstance(url_list, str):
         url_list = [re.sub(r"://:[^@]*@", "://:***@", url_list)]
     return url_list
 
@@ -259,9 +254,7 @@ def queues_overview(instance_number):
             rq_dashboard_version=rq_dashboard_version,
             rq_version=rq_version,
             active_tab="queues",
-            deprecation_options_usage=current_app.config.get(
-                "DEPRECATED_OPTIONS", False
-            ),
+            deprecation_options_usage=current_app.config.get("DEPRECATED_OPTIONS", False),
         )
     )
     r.headers.set("Cache-Control", "no-store")
@@ -280,9 +273,7 @@ def workers_overview(instance_number):
             rq_dashboard_version=rq_dashboard_version,
             rq_version=rq_version,
             active_tab="workers",
-            deprecation_options_usage=current_app.config.get(
-                "DEPRECATED_OPTIONS", False
-            ),
+            deprecation_options_usage=current_app.config.get("DEPRECATED_OPTIONS", False),
         )
     )
     r.headers.set("Cache-Control", "no-store")
@@ -298,9 +289,7 @@ def workers_overview(instance_number):
         "page": "1",
     },
 )
-@blueprint.route(
-    "/<int:instance_number>/view/jobs/<queue_name>/<registry_name>/<int:per_page>/<int:page>"
-)
+@blueprint.route("/<int:instance_number>/view/jobs/<queue_name>/<registry_name>/<int:per_page>/<int:page>")
 def jobs_overview(instance_number, queue_name, registry_name, per_page, page):
     if queue_name is None:
         queue = Queue()
@@ -320,9 +309,7 @@ def jobs_overview(instance_number, queue_name, registry_name, per_page, page):
             rq_dashboard_version=rq_dashboard_version,
             rq_version=rq_version,
             active_tab="jobs",
-            deprecation_options_usage=current_app.config.get(
-                "DEPRECATED_OPTIONS", False
-            ),
+            deprecation_options_usage=current_app.config.get("DEPRECATED_OPTIONS", False),
         )
     )
     r.headers.set("Cache-Control", "no-store")
@@ -341,9 +328,7 @@ def job_view(instance_number, job_id):
             rq_url_prefix=url_for(".queues_overview"),
             rq_dashboard_version=rq_dashboard_version,
             rq_version=rq_version,
-            deprecation_options_usage=current_app.config.get(
-                "DEPRECATED_OPTIONS", False
-            ),
+            deprecation_options_usage=current_app.config.get("DEPRECATED_OPTIONS", False),
         )
     )
     r.headers.set("Cache-Control", "no-store")
@@ -416,17 +401,13 @@ def list_queues(instance_number):
     return dict(queues=queues)
 
 
-@blueprint.route(
-    "/<int:instance_number>/data/jobs/<queue_name>/<registry_name>/<per_page>/<page>.json"
-)
+@blueprint.route("/<int:instance_number>/data/jobs/<queue_name>/<registry_name>/<per_page>/<page>.json")
 @jsonify
 def list_jobs(instance_number, queue_name, registry_name, per_page, page):
     current_page = int(page)
     per_page = int(per_page)
     offset = (current_page - 1) * per_page
-    total_items, jobs = get_queue_registry_jobs_count(
-        queue_name, registry_name, offset, per_page
-    )
+    total_items, jobs = get_queue_registry_jobs_count(queue_name, registry_name, offset, per_page)
 
     pages_numbers_in_window = pagination_window(total_items, current_page, per_page)
     pages_in_window = [
@@ -504,9 +485,7 @@ def list_jobs(instance_number, queue_name, registry_name, per_page, page):
         )
     )
 
-    return dict(
-        name=queue_name, registry_name=registry_name, jobs=jobs, pagination=pagination
-    )
+    return dict(name=queue_name, registry_name=registry_name, jobs=jobs, pagination=pagination)
 
 
 @blueprint.route("/<int:instance_number>/data/job/<job_id>.json")

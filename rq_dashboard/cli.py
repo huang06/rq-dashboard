@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import importlib
 import logging
 import os
 import sys
-from urllib.parse import quote as urlquote, urlunparse
+from urllib.parse import quote as urlquote
+from urllib.parse import urlunparse
 
 import click
 from flask import Flask, Response, request
@@ -26,7 +29,7 @@ def add_basic_auth(blueprint, username, password, realm="RQ Dashboard"):
             return Response(
                 "Please login",
                 401,
-                {"WWW-Authenticate": 'Basic realm="{}"'.format(realm)},
+                {"WWW-Authenticate": f'Basic realm="{realm}"'},
             )
 
 
@@ -60,15 +63,9 @@ def make_flask_app(config, username, password, url_prefix, compatibility_mode=Tr
     default="0.0.0.0",
     help="IP or hostname on which to bind HTTP server",
 )
-@click.option(
-    "-p", "--port", default=9181, type=int, help="Port on which to bind HTTP server"
-)
-@click.option(
-    "--url-prefix", default="", help="URL prefix e.g. for use behind a reverse proxy"
-)
-@click.option(
-    "--username", default=None, help="HTTP Basic Auth username (not used if not set)"
-)
+@click.option("-p", "--port", default=9181, type=int, help="Port on which to bind HTTP server")
+@click.option("--url-prefix", default="", help="URL prefix e.g. for use behind a reverse proxy")
+@click.option("--username", default=None, help="HTTP Basic Auth username (not used if not set)")
 @click.option("--password", default=None, help="HTTP Basic Auth password")
 @click.option(
     "-c",
@@ -151,9 +148,7 @@ def make_flask_app(config, username, password, url_prefix, compatibility_mode=Tr
     help="[DEPRECATED] Delete jobs instead of cancel",
 )
 @click.option("--debug/--normal", default=False, help="Enter DEBUG mode")
-@click.option(
-    "-v", "--verbose", is_flag=True, default=False, help="Enable verbose logging"
-)
+@click.option("-v", "--verbose", is_flag=True, default=False, help="Enable verbose logging")
 def run(
     bind,
     port,
@@ -189,7 +184,7 @@ def run(
     if extra_path:
         sys.path += list(extra_path)
 
-    click.echo("RQ Dashboard version {}".format(VERSION))
+    click.echo(f"RQ Dashboard version {VERSION}")
     app = make_flask_app(config, username, password, url_prefix)
     app.config["DEPRECATED_OPTIONS"] = []
     if redis_url:
@@ -221,7 +216,7 @@ def run(
         log.setLevel(logging.DEBUG)
     else:
         log.setLevel(logging.ERROR)
-        log.error(" * Running on {}:{}".format(bind, port))
+        log.error(f" * Running on {bind}:{port}")
 
     if app.config["DEPRECATED_OPTIONS"] and not redis_url:
         # redis+sentinel://[:password@]host:port[,host2:port2,...][/service_name[/db]][?param1=value1[&param2=value=2&...]]
@@ -231,7 +226,7 @@ def run(
         else:
             netloc = redis_host or "localhost"
             if redis_port:
-                netloc = "%s:%s" % (netloc, redis_port)
+                netloc = f"{netloc}:{redis_port}"
         if redis_password:
             netloc = urlquote(redis_password) + "@" + netloc
         path = ""
